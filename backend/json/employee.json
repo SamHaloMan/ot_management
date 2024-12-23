@@ -1,0 +1,94 @@
+{
+	"employee":[
+		{
+			"id":1,
+			"employee_id":"MW2300234",
+			"name":"Apria Wati",
+			"isEnabled": true
+		},
+		{
+			"id":2,
+			"employee_id":"MW2300225",
+			"name":"Chris Easterjordan",
+			"isEnabled": false
+		},
+		{
+			"id":3,
+			"employee_id":"MW2300285",
+			"name":"Dennis Harnandi",
+			"isEnabled": true
+		},
+		{
+			"id":4,
+			"employee_id":"MW2100721",
+			"name":"Jeffry Jaman",
+			"isEnabled": true
+		},
+		{
+			"id":5,
+			"employee_id":"MW2202304",
+			"name":"Jeremy Christoputra",
+			"isEnabled": true
+		},
+		{
+			"id":6,
+			"employee_id":"MW2101784",
+			"name":"Laurence Hasan",
+			"isEnabled": true
+		},
+		{
+			"id":7,
+			"employee_id":"MW2201208",
+			"name":"Martin Vermilli",
+			"isEnabled": true
+		},
+		{
+			"id":8,
+			"employee_id":"MW2300226",
+			"name":"Michael Julianpete",
+			"isEnabled": true
+		},
+		{
+			"id":9,
+			"name":"Otniel Dwimarti",
+			"employee_id":"MW2202033",
+			"isEnabled": true
+		},
+		{
+			"id":10,
+			"employee_id":"MW2200166",
+			"name":"Tommy Pratama",
+			"isEnabled": false
+		},
+		{
+			"id":11,
+			"employee_id":"MW2301584",
+			"name":"Ivan Wijaya",
+			"isEnabled": true
+		},
+		{
+			"id":12,
+			"employee_id":"MW2301652",
+			"name":"Vincent Utama",
+			"isEnabled": true
+		},
+		{
+			"id":13,
+			"employee_id":"MW2301723",
+			"name":"Winnie1 Chuang",
+			"isEnabled": true
+		},
+		{
+			"id":14,
+			"employee_id":"MW2400027",
+			"name":"Jonathan Miharja",
+			"isEnabled": true
+		},
+		{
+			"id":15,
+			"employee_id":"MW2400310",
+			"name":"Muchammad Farel",
+			"isEnabled": true
+		}
+	]
+}
