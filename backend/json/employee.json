@@ -2,20 +2,38 @@
     "employee": [
         {
             "id": 1,
-            "employee_id": "MW2300234",
-            "name": "Apria Wati",
+            "employee_id": "MW241224",
+            "name": "Mulyono",
             "is_enabled": true
         },
         {
             "id": 2,
-            "employee_id": "MW2400549",
-            "name": "Samuel Halomoan",
+            "employee_id": "MW22251",
+            "name": "Prabowo",
             "is_enabled": true
         },
         {
             "id": 3,
-            "employee_id": "MW2300285",
-            "name": "Dennis Harnandi",
+            "employee_id": "MW220123",
+            "name": "TONO",
+            "is_enabled": true
+        },
+        {
+            "id": 4,
+            "employee_id": "MW210123",
+            "name": "BUDI",
+            "is_enabled": true
+        },
+        {
+            "id": 5,
+            "employee_id": "MW230123",
+            "name": "Andhi Parno",
+            "is_enabled": true
+        },
+        {
+            "id": 6,
+            "employee_id": "MW240123",
+            "name": "User 1",
             "is_enabled": true
         }
     ]
