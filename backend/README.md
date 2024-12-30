@@ -106,7 +106,7 @@ http://localhost:1234/v1/api/docs/
 ```python
 {
     "id": integer,
-    "employee_id": string,
+    "work_id": string,
     "name": string,
     "is_enabled": boolean,
     "created_at": datetime,
@@ -129,17 +129,17 @@ http://localhost:1234/v1/api/docs/
 ```python
 {
     "id": integer,
-    "employee_id": string,
+    "work_id": string,
     "employee_name": string,
     "project_name": integer,
-    "time_start": time,
-    "time_end": time,
-    "total_hours": time,
+    "overtime_date": datetime,
     "overtime_title": string,
     "overtime_reason": string,
-    "has_break": boolean,
+    "time_start": time,
+    "time_end": time,
     "break_start": time,
     "break_end": time,
+    "total_hours": time,
     "created_at": datetime,
     "updated_at": datetime
 }
