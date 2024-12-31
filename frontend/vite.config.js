@@ -17,4 +17,10 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    port: 4321,
+    proxy: {
+      // https://vitejs.dev/config/server-options.html
+    },
+  },
 })
