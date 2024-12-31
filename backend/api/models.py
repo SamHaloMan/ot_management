@@ -106,10 +106,14 @@ class OvertimeRequest(TimestampedModel):
         self.total_hours = self.calculate_total_hours()
         super().save(*args, **kwargs)
         
-        # Update JSON files
-        json_manager.update_overtime_json(self)
-        from .models import Employee, OvertimeRequest
-        json_manager.update_analytics_json(Employee, OvertimeRequest)
+        try:
+            # Update JSON files
+            json_manager.update_overtime_json(self)
+            from .models import Employee, OvertimeRequest
+            json_manager.update_analytics_json(Employee, OvertimeRequest)
+        except Exception as e:
+            # Log the error, but don't prevent the save operation
+            print(f"Error updating JSON files: {str(e)}")
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
@@ -118,3 +122,7 @@ class OvertimeRequest(TimestampedModel):
 
     def __str__(self):
         return f"{self.overtime_title} - {self.work_id}"
+    
+    class Meta:
+        # Add a unique constraint for work_id + overtime_date + project_name to prevent duplicate entries
+        unique_together = ('work_id', 'overtime_date', 'project_name')

@@ -24,21 +24,34 @@ class OvertimeRequestSerializer(serializers.ModelSerializer):
                   'overtime_date', 'overtime_title', 'overtime_reason',
                   'time_start', 'time_end',  'break_start', 'break_end',
                   'total_hours', 'created_at', 'updated_at']
+        
+        # This allows these fields to be either omitted or set as null in the request body.
+        extra_kwargs = {
+            'break_start': {'required': False, 'allow_null': True},
+            'break_end': {'required': False, 'allow_null': True},
+        }
+
+    def get_employee_name(self, obj):
+        try:
+            employee = Employee.objects.get(work_id=obj.work_id)
+            return employee.name
+        except Employee.DoesNotExist:
+            return None
+        
+    def validate_break_fields(self, value):
+        if value == "":
+            return None
+        return value
 
     def validate(self, data):
-        # work_id = data.get('work_id')
-        employee_name = data.get('employee_name')
+        employee_workId = data.get('work_id')
+        employee_name = self.context['request'].data.get('employee_name')
         project_name = data.get('project_name')
 
-        # Employee `work_id` is required. If Employee `name` blank, it will automatically filled based on employee `work_id`
-        # if work_id:
-        #     try:
-        #         employee = Employee.objects.get(name=work_id)
-        #         data['name'] = employee.name
-        #     except Employee.DoesNotExist:
-        #         raise serializers.ValidationError({'work_id': 'Employee WorkID not found'})
-        
-        # Employee `name` is required. If Employee `work_id` blank, it will automatically filled based on employee `name`
+        # Handle the break fields and convert empty strings to None
+        data['break_start'] = self.validate_break_fields(data.get('break_start'))
+        data['break_end'] = self.validate_break_fields(data.get('break_end'))
+
         if employee_name:
             try:
                 employee = Employee.objects.get(name=employee_name)
@@ -46,25 +59,10 @@ class OvertimeRequestSerializer(serializers.ModelSerializer):
             except Employee.DoesNotExist:
                 raise serializers.ValidationError({'employee_name': 'Employee name not found'})
 
+        if employee_workId and not Employee.objects.filter(work_id=employee_workId).exists():
+            raise serializers.ValidationError({'work_id': 'Work ID not found'})
+
         if project_name and not Project.objects.filter(name=project_name).exists():
             raise serializers.ValidationError({'project_name': 'Project not found'})
 
         return data
-    
-    # def get_employee_display_workId(self, obj):
-    #     try:
-    #         return Employee.objects.get(name=obj.project_name).name
-    #     except Employee.DoesNotExist:
-    #         return None
-
-    def get_employee_display_name(self, obj):
-        try:
-            return Employee.objects.get(name=obj.work_id).name
-        except Employee.DoesNotExist:
-            return None
-
-    def get_project_display_name(self, obj):
-        try:
-            return Project.objects.get(name=obj.project_name).name
-        except Project.DoesNotExist:
-            return None

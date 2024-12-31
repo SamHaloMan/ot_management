@@ -37,22 +37,27 @@ class JSONFileManager:
         
         self._ensure_file_exists(filepath)
         
-        with open(filepath, 'r') as f:
-            data = json.load(f)
+        try:
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+        except json.JSONDecodeError:
+            # If the file is empty or contains invalid JSON, initialize with an empty structure
+            data = {"overtime_requests": []}
         
         overtime_data = {
-            "id": overtime_request.id,
             "work_id": overtime_request.work_id,
+            "employee_name": overtime_request.employee_name,
             "project_name": overtime_request.project_name,
-            "time_start": overtime_request.time_start.strftime("%H:%M"),
-            "time_end": overtime_request.time_end.strftime("%H:%M"),
-            "total_hours": float(overtime_request.total_hours),
+            "overtime_date": overtime_request.overtime_date.isoformat(),
             "overtime_title": overtime_request.overtime_title,
             "overtime_reason": overtime_request.overtime_reason,
+            "time_start": overtime_request.time_start.strftime("%H:%M"),
+            "time_end": overtime_request.time_end.strftime("%H:%M"),
             "break_start": overtime_request.break_start.strftime("%H:%M") if overtime_request.break_start else None,
             "break_end": overtime_request.break_end.strftime("%H:%M") if overtime_request.break_end else None,
-            "created_at": overtime_request.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            "updated_at": overtime_request.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "total_hours": float(overtime_request.total_hours),
+            "created_at": overtime_request.created_at.isoformat(),
+            "updated_at": overtime_request.updated_at.isoformat(),
         }
         
         if "overtime_requests" not in data:
@@ -89,8 +94,8 @@ class JSONFileManager:
         today = date.today()
         start_date, end_date = self._get_monthly_date_range(today)
         
-        # Generate analytics filename based on the end date's month and year
-        filename = f"Analytics_{end_date.strftime('%B')}_{end_date.year}.json"
+        # Format file name based on the start_date's month and the current year
+        filename = f"Analytics_{start_date.strftime('%B')}_{start_date.year}.json"
         filepath = os.path.join(self.base_path, filename)
         
         analytics_data = {"Employee_OT_Hours_Analytics": []}

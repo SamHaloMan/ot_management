@@ -39,6 +39,12 @@ class OvertimeRequestViewSet(viewsets.ModelViewSet):
 class OvertimeReportAnalyticsViewSet(viewsets.ViewSet):
     def _get_date_range(self, start_date, end_date):
         """Convert string dates to datetime objects with validation"""
+        if not start_date or not end_date:
+            # Default to current month if no dates provided
+            today = date.today()
+            start_date = today.replace(day=1).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+
         try:
             start = datetime.strptime(start_date, '%Y-%m-%d').date()
             end = datetime.strptime(end_date, '%Y-%m-%d').date()
@@ -46,10 +52,7 @@ class OvertimeReportAnalyticsViewSet(viewsets.ViewSet):
             if start > end:
                 raise ValueError("Start date must be before end date")
                 
-            if end > date.today():
-                raise ValueError("End date cannot be in the future")
-                
-            return start, end
+            return start, end, None
         except (ValueError, TypeError) as e:
             return None, None, str(e)
 
@@ -62,6 +65,82 @@ class OvertimeReportAnalyticsViewSet(viewsets.ViewSet):
             'year': TruncYear
         }
         return trunc_functions.get(grouping, TruncDate)
+
+    def _validate_entities(self, work_ids, project_names):
+        """Validate that all employees and projects exist"""
+        invalid_work_ids = []
+        invalid_projects = []
+
+        for work_id in work_ids:
+            if not Employee.objects.filter(work_id=work_id).exists():
+                invalid_work_ids.append(work_id)
+
+        for project in project_names:
+            if not Project.objects.filter(name=project).exists():
+                invalid_projects.append(project)
+
+        return invalid_work_ids, invalid_projects
+    
+
+    @action(detail=False, methods=['get'])
+    def get_monthly_analytics(self, request):
+        """Get analytics for a specific month"""
+        try:
+            # Default to current month if no parameters provided
+            year = int(request.query_params.get('year', date.today().year))
+            month = int(request.query_params.get('month', date.today().month))
+            
+            # Calculate date range for the month (26th of previous month to 25th of current month)
+            if date.today().day <= 25:
+                end_date = date(year, month, 25)
+                if month == 1:
+                    start_date = date(year - 1, 12, 26)
+                else:
+                    start_date = date(year, month - 1, 26)
+            else:
+                start_date = date(year, month, 26)
+                if month == 12:
+                    end_date = date(year + 1, 1, 25)
+                else:
+                    end_date = date(year, month + 1, 25)
+
+            # Query the database directly
+            employees = Employee.objects.all()
+            analytics_data = {"Employee_OT_Hours_Analytics": []}
+
+            for employee in employees:
+                overtime_hours = OvertimeRequest.objects.filter(
+                    work_id=employee.work_id,
+                    overtime_date__range=(start_date, end_date)
+                ).values('project_name').annotate(
+                    total_hours=Sum('total_hours')
+                )
+
+                if overtime_hours:
+                    projects_dict = {
+                        ot['project_name']: float(ot['total_hours'])
+                        for ot in overtime_hours
+                    }
+
+                    employee_data = {
+                        "work_id": employee.work_id,
+                        "name": employee.name,
+                        "projects": projects_dict
+                    }
+                    analytics_data["Employee_OT_Hours_Analytics"].append(employee_data)
+
+            return Response(analytics_data)
+            
+        except ValueError:
+            return Response(
+                {"error": "Invalid year or month parameters"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
     @action(detail=False, methods=['get'])
@@ -81,18 +160,29 @@ class OvertimeReportAnalyticsViewSet(viewsets.ViewSet):
         if error:
             return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
-        trunc_function = self._get_trunc_function(grouping)
-        
         try:
+            # Get all overtime data for the date range
             employee_data = OvertimeRequest.objects.filter(
                 overtime_date__range=(start, end)
             ).values(
                 'work_id',
                 'project_name'
             ).annotate(
-                date=trunc_function('overtime_date'),
+                date=self._get_trunc_function(grouping)('overtime_date'),
                 total_hours=Sum('total_hours')
             ).order_by('work_id', 'date')
+
+            # Validate entities
+            work_ids = set(entry['work_id'] for entry in employee_data)
+            project_names = set(entry['project_name'] for entry in employee_data)
+            invalid_work_ids, invalid_projects = self._validate_entities(work_ids, project_names)
+
+            if invalid_work_ids or invalid_projects:
+                return Response({
+                    "error": "Invalid entities found",
+                    "invalid_work_ids": invalid_work_ids,
+                    "invalid_projects": invalid_projects
+                }, status=status.HTTP_400_BAD_REQUEST)
 
             formatted_data = {
                 'by_employee': {},
@@ -102,103 +192,103 @@ class OvertimeReportAnalyticsViewSet(viewsets.ViewSet):
                     'total_hours': 0,
                     'total_employees': 0,
                     'total_projects': 0,
-                    'average_hours_per_day': 0
+                    'date_range': {
+                        'start': start.strftime('%Y-%m-%d'),
+                        'end': end.strftime('%Y-%m-%d'),
+                        'grouping': grouping
+                    }
                 }
             }
 
             for entry in employee_data:
-                work_id = entry['employee_id']
+                work_id = entry['work_id']
                 project = entry['project_name']
                 date_str = entry['date'].strftime('%Y-%m-%d')
                 hours = float(entry['total_hours'])
 
+                # Get employee name
+                employee = Employee.objects.get(work_id=work_id)
+                employee_name = employee.name
+
                 # By employee
                 if work_id not in formatted_data['by_employee']:
-                    try:
-                        employee = Employee.objects.get(employee_id=work_id)
-                        formatted_data['by_employee'][work_id] = {
-                            'name': employee.name,
-                            'total_hours': 0,
-                            'projects': {}
-                        }
-                    except Employee.DoesNotExist:
-                        continue
+                    formatted_data['by_employee'][work_id] = {
+                        'name': employee_name,
+                        'total_hours': 0,
+                        'projects': {},
+                        'timeline': {}
+                    }
                 
                 if project not in formatted_data['by_employee'][work_id]['projects']:
                     formatted_data['by_employee'][work_id]['projects'][project] = 0
                 
+                if date_str not in formatted_data['by_employee'][work_id]['timeline']:
+                    formatted_data['by_employee'][work_id]['timeline'][date_str] = 0
+
                 formatted_data['by_employee'][work_id]['projects'][project] += hours
+                formatted_data['by_employee'][work_id]['timeline'][date_str] += hours
                 formatted_data['by_employee'][work_id]['total_hours'] += hours
 
                 # By project
                 if project not in formatted_data['by_project']:
                     formatted_data['by_project'][project] = {
                         'total_hours': 0,
-                        'timeline': {}
+                        'timeline': {},
+                        'employees': {}
                     }
                 
                 if date_str not in formatted_data['by_project'][project]['timeline']:
                     formatted_data['by_project'][project]['timeline'][date_str] = 0
                 
+                if work_id not in formatted_data['by_project'][project]['employees']:
+                    formatted_data['by_project'][project]['employees'][work_id] = {
+                        'name': employee_name,
+                        'hours': 0
+                    }
+
                 formatted_data['by_project'][project]['timeline'][date_str] += hours
+                formatted_data['by_project'][project]['employees'][work_id]['hours'] += hours
                 formatted_data['by_project'][project]['total_hours'] += hours
 
                 # Timeline
                 if date_str not in formatted_data['timeline']:
                     formatted_data['timeline'][date_str] = {
                         'total_hours': 0,
-                        'by_project': {}
+                        'by_project': {},
+                        'by_employee': {}
                     }
                 
                 if project not in formatted_data['timeline'][date_str]['by_project']:
                     formatted_data['timeline'][date_str]['by_project'][project] = 0
                 
+                if work_id not in formatted_data['timeline'][date_str]['by_employee']:
+                    formatted_data['timeline'][date_str]['by_employee'][work_id] = {
+                        'name': employee_name,
+                        'hours': 0
+                    }
+
                 formatted_data['timeline'][date_str]['by_project'][project] += hours
+                formatted_data['timeline'][date_str]['by_employee'][work_id]['hours'] += hours
                 formatted_data['timeline'][date_str]['total_hours'] += hours
 
-            # Calculate summary
-            total_hours = sum(emp['total_hours'] for emp in formatted_data['by_employee'].values())
-            days_difference = (end - start).days + 1
-            
+            # Sort timeline data
+            formatted_data['timeline'] = dict(sorted(formatted_data['timeline'].items()))
+            for project in formatted_data['by_project'].values():
+                project['timeline'] = dict(sorted(project['timeline'].items()))
+            for employee in formatted_data['by_employee'].values():
+                employee['timeline'] = dict(sorted(employee['timeline'].items()))
+
+            # Update summary
             formatted_data['summary'].update({
-                'total_hours': total_hours,
+                'total_hours': sum(emp['total_hours'] for emp in formatted_data['by_employee'].values()),
                 'total_employees': len(formatted_data['by_employee']),
-                'total_projects': len(formatted_data['by_project']),
-                'average_hours_per_day': round(total_hours / days_difference, 2) if days_difference > 0 else 0
+                'total_projects': len(formatted_data['by_project'])
             })
 
             return Response(formatted_data)
             
         except Exception as e:
             return Response(
-                {"error": f"An error occurred while processing the data: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
-    @action(detail=False, methods=['get'])
-    def get_monthly_analytics(self, request):
-        """Get analytics for a specific month"""
-        try:
-            year = int(request.query_params.get('year', date.today().year))
-            month = int(request.query_params.get('month', date.today().month))
-            
-            filename = f"Analytics_{date(year, month, 1).strftime('%B')}_{year}.json"
-            json_path = os.path.join(os.path.dirname(__file__), "json_files", filename)
-            
-            if os.path.exists(json_path):
-                with open(json_path, 'r') as f:
-                    data = json.load(f)
-                return Response(data)
-            return Response({"Employee_OT_Hours_Analytics": []})
-            
-        except (ValueError, TypeError):
-            return Response(
-                {"error": "Invalid year or month parameters"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        except Exception as e:
-            return Response(
-                {"error": str(e)},
+                {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
