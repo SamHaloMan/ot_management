@@ -1,6 +1,6 @@
 <template>
     <div class="analytics">
-        <h1 class="mb-4">Analytics</h1>
+        <h3 class="mb-4">Analytics</h3>
 
         <!-- Date Range Selector -->
         <CCard class="mb-4">
@@ -119,7 +119,7 @@ import { useStore } from 'vuex'
 import Chart from 'chart.js/auto'
 
 export default {
-    name: 'AnalyticsView',
+    name: 'OvertimeAnalyticsView',
     setup() {
         const store = useStore()
         const startDate = ref('')

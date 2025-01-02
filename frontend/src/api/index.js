@@ -1,7 +1,13 @@
 import axios from 'axios'
 
+// const axiosInstance = axios.create({
+//   baseURL: import.meta.env.VUE_APP_API_BASE_URL || 'http://localhost:1234/v1/api',
+//   headers: { 'Content-Type': 'application/json' },
+// })
+
+axios.defaults.baseURL = import.meta.env.VUE_APP_API_BASE_URL
+
 const api = {
-  // Employee endpoints
   async getEmployees() {
     const response = await axios.get('/employees/')
     return response.data
@@ -12,7 +18,6 @@ const api = {
     return response.data
   },
 
-  // Project endpoints
   async getProjects() {
     const response = await axios.get('/projects/')
     return response.data
@@ -23,10 +28,14 @@ const api = {
     return response.data
   },
 
-  // Overtime request endpoints
   async getOvertimeRequests() {
-    const response = await axios.get('/overtime-requests/')
-    return response.data
+    try {
+      const response = await axios.get('/overtime-requests/')
+      return Array.isArray(response.data) ? response.data : []
+    } catch (error) {
+      console.error('API Error:', error)
+      throw error
+    }
   },
 
   async createOvertimeRequest(data) {
@@ -34,7 +43,6 @@ const api = {
     return response.data
   },
 
-  // Analytics endpoints
   async getAnalytics(params) {
     const response = await axios.get('/analytics/overtime-by-date-range/', { params })
     return response.data
@@ -42,7 +50,7 @@ const api = {
 
   async getMonthlyAnalytics(params) {
     const response = await axios.get('/analytics/get_monthly_analytics/', { params })
-    return response.data 
+    return response.data
   },
 }
 

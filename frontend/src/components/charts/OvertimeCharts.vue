@@ -38,7 +38,7 @@ export default {
         let projectChartInstance = null
 
         const updateCharts = () => {
-            const requests = store.state.overtimeRequests
+            const requests = store.state.overtime.requests
 
             // Process data for employee chart
             const employeeData = {}
@@ -68,9 +68,19 @@ export default {
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Hours'
+                            }
                         }
                     }
                 }
@@ -94,14 +104,23 @@ export default {
                             'rgba(153, 102, 255, 0.5)'
                         ]
                     }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
                 }
             })
         }
 
-        watch(() => store.state.overtimeRequests, updateCharts)
+        watch(() => store.state.overtime.requests, updateCharts, { deep: true })
 
         onMounted(() => {
-            store.dispatch('fetchOvertimeRequests').then(updateCharts)
+            store.dispatch('overtime/fetchRequests').then(updateCharts)
         })
 
         return {
@@ -111,3 +130,9 @@ export default {
     }
 }
 </script>
+
+<style scoped>
+.card-body {
+    min-height: 300px;
+}
+</style>

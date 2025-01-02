@@ -1,7 +1,9 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+
 import App from './App.vue'
 import router from './router'
-import store from './store'
+import stores from './stores'
 
 // CoreUI
 import CoreuiVue from '@coreui/vue'
@@ -10,14 +12,15 @@ import { iconsSet as icons } from '@/assets/icons'
 import '@coreui/coreui/dist/css/coreui.min.css'
 
 import axios from 'axios'
-axios.defaults.baseURL = 'http://localhost:1234/v1/api'
+axios.defaults.baseURL = import.meta.env.BASE_URL
 
 const app = createApp(App)
 
+app.use(createPinia())
 app.use(router)
-app.use(store)
+app.use(stores)
 app.use(CoreuiVue)
-app.component('CIcon', CIcon)
 app.provide('icons', icons)
+app.component('CIcon', CIcon)
 
 app.mount('#app')
