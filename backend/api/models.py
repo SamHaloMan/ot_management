@@ -70,6 +70,11 @@ class OvertimeRequest(TimestampedModel):
 
     def clean(self):
         super().clean()
+
+        # Ensure overtime_date is a date, not a datetime
+        if isinstance(self.overtime_date, datetime):
+            self.overtime_date = self.overtime_date.date()
+
         if self.break_start and not self.break_end:
             raise ValidationError("Break end time is required if break start is set")
         if self.break_end and not self.break_start:
