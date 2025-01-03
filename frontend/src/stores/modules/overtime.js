@@ -8,6 +8,7 @@ export default {
     error: null,
     weeklyHours: 0,
     monthlyHours: 0,
+    lastSubmittedData: {},
   },
 
   mutations: {
@@ -29,6 +30,9 @@ export default {
     },
     ADD_REQUEST(state, request) {
       state.requests.unshift(request)
+    },
+    UPDATE_LAST_SUBMITTED(state, { employeeName, data }) {
+      state.lastSubmittedData[employeeName] = data
     },
   },
 
@@ -65,13 +69,21 @@ export default {
       }
     },
 
-    async submitRequest({ commit }, data) {
+    async submitRequest({ commit, state }, data) {
       commit('SET_LOADING', true)
       commit('SET_ERROR', null)
 
       try {
         const response = await api.createOvertimeRequest(data)
         commit('ADD_REQUEST', response)
+        // Store last submitted data
+        commit('UPDATE_LAST_SUBMITTED', {
+          employeeName: data.employee_name,
+          data: {
+            ...data,
+            overtime_date: data.overtime_date,
+          },
+        })
         return response
       } catch (error) {
         commit('SET_ERROR', error.message)
@@ -89,6 +101,17 @@ export default {
       return [...state.requests].sort(
         (a, b) => new Date(b.overtime_date) - new Date(a.overtime_date),
       )
+    },
+    getLastSubmittedData: (state) => (employeeName, overtimeDate) => {
+      const allRequests = [...state.requests]
+      const lastSubmitted = state.lastSubmittedData[employeeName]
+
+      // Find historical data for specific date
+      const historicalRequest = allRequests.find(
+        (req) => req.employee_name === employeeName && req.overtime_date === overtimeDate,
+      )
+
+      return historicalRequest || lastSubmitted || null
     },
   },
 }

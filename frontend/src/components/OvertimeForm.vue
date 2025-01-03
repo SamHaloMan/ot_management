@@ -34,14 +34,24 @@
         </div>
 
         <!-- Form -->
-        <CCard>
+        <CCard class="mb-4">
             <CCardBody>
                 <CForm @submit.prevent="handleSubmit">
+                    <CAlert v-if="submitSuccess" color="success" dismissible>
+                        <center><strong>Overtime Data Submitted Successfully!</strong></center>
+                    </CAlert>
+                    <CAlert v-if="submitError" color="danger" dismissible>
+                        {{ submitError }}
+                    </CAlert>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <CFormLabel>Employee Name*</CFormLabel>
-                            <CFormSelect v-model="form.employee_name" :options="employeeOptions"
+                            <CFormSelect v-if="employeeOptions.length" v-model="form.employee_name"
+                                :state="form.employee_name !== '--SELECT OPTIONS--'" :options="employeeOptions"
                                 @change="handleEmployeeChange" required />
+                            <div v-if="form.employee_name === '--SELECT OPTIONS--'" class="invalid-feedback">
+                                <center><strong>Please Select an Employee</strong></center>
+                            </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -51,7 +61,12 @@
 
                         <div class="col-md-6 mb-3">
                             <CFormLabel>Project Name*</CFormLabel>
-                            <CFormSelect v-model="form.project_name" :options="projectOptions" required />
+                            <CFormSelect v-if="projectOptions.length" v-model="form.project_name"
+                                :state="form.project_name !== '--SELECT OPTIONS--'" :options="projectOptions"
+                                required />
+                            <div v-if="form.project_name === '--SELECT OPTIONS--'" class="invalid-feedback">
+                                <center><strong>Please Select a Project</strong></center>
+                            </div>
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -133,42 +148,49 @@ export default {
     name: 'OvertimeForm',
     setup() {
         const store = useStore();
+        const DEFAULT_SELECT = '--SELECT OPTIONS--';
+        const DEFAULT_WORKID = 'MW-------';
+        const submitSuccess = ref(false);
 
-        // Form fields
-        const form = ref({
-            employee_name: '---SELECT OPTIONS---',
-            work_id: '',
-            project_name: '---SELECT OPTIONS---',
+        // Default form values
+        const getDefaultForm = () => ({
+            employee_name: DEFAULT_SELECT,
+            work_id: DEFAULT_WORKID,
+            project_name: DEFAULT_SELECT,
             overtime_date: new Date().toISOString().split('T')[0],
-            time_start: '',
+            time_start: '17:20',
             time_end: '',
-            break_start: '',
-            break_end: '',
+            break_start: '12:00',
+            break_end: '13:00',
             overtime_title: '',
             overtime_reason: '',
             take_break: false,
+            total_hours: 0,
         });
 
+        const form = ref(getDefaultForm());
         const totalHours = ref(0);
         const totalBreakHours = ref(0);
         const submitError = ref('');
 
-        // Fetch employee and project data
-        onMounted(() => {
-            store.dispatch('employees/fetchEmployees');
-            store.dispatch('projects/fetchProjects');
+        // Dropdown options
+        const employeeOptions = computed(() => {
+            const options = store.getters['employees/employeeOptions'].map(option => ({
+                label: option.text,
+                value: option.value
+            }));
+            console.log('Generated employee options:', options);
+            return options;
         });
 
-        // Dropdown options
-        const employeeOptions = computed(() => [
-            { value: '---SELECT OPTIONS---', text: '---SELECT OPTIONS---' },
-            ...store.getters['employees/employeeOptions'],
-        ]);
-
-        const projectOptions = computed(() => [
-            { value: '---SELECT OPTIONS---', text: '---SELECT OPTIONS---' },
-            ...store.getters['projects/projectOptions'],
-        ]);
+        const projectOptions = computed(() => {
+            const options = store.getters['projects/projectOptions'].map(option => ({
+                label: option.text,
+                value: option.value
+            }));
+            console.log('Generated project options:', options);
+            return options;
+        });
 
         // Computed values
         const appliedMonthly = computed(() => store.state.overtime.monthlyHours);
@@ -178,11 +200,18 @@ export default {
 
         // Auto-fill work ID when employee name changes
         const handleEmployeeChange = () => {
+            console.log('Selected employee:', form.value.employee_name)
+            if (form.value.employee_name === '--SELECT OPTIONS--') {
+                form.value.work_id = ''
+                return
+            }
+
             const selectedEmployee = store.state.employees.employees.find(
                 (emp) => emp.name === form.value.employee_name
-            );
-            form.value.work_id = selectedEmployee ? selectedEmployee.work_id : '';
-        };
+            )
+            console.log('Found employee:', selectedEmployee) // Debug log
+            form.value.work_id = selectedEmployee ? selectedEmployee.work_id : ''
+        }
 
         const handleBreakToggle = () => {
             if (!form.value.take_break) {
@@ -197,16 +226,18 @@ export default {
         }
 
         const validateForm = () => {
-            if (!form.value.employee_name) return 'Employee name is required'
-            if (!form.value.project_name) return 'Project name is required'
-            if (!form.value.overtime_date) return 'Overtime date is required'
-            if (!form.value.time_start || !form.value.time_end) return 'Time start and end are required'
-            if (totalHours.value <= 0) return 'Invalid time range'
+            if (form.value.employee_name === DEFAULT_SELECT) return 'Please select an employee';
+            if (form.value.project_name === DEFAULT_SELECT) return 'Please select a project';
+            if (!form.value.overtime_date) return 'Overtime date is required';
+            if (!form.value.time_start || !form.value.time_end) return 'Time start and end are required';
+            if (totalHours.value <= 0) return 'Invalid time range';
             if (form.value.take_break && (!form.value.break_start || !form.value.break_end)) {
-                return 'Both break start and end times are required when taking a break'
+                return 'Both break start and end times are required when taking a break';
             }
-            return ''
-        }
+            if (!form.value.overtime_title.trim()) return 'Overtime title is required';
+            if (!form.value.overtime_reason.trim()) return 'Overtime reason is required';
+            return '';
+        };
 
         const calculateTotalBreakTime = () => {
             if (!form.value.break_start || !form.value.break_end) {
@@ -239,29 +270,46 @@ export default {
         }
 
         const resetForm = () => {
-            form.value = {
-                employee_name: '',
-                work_id: '',
-                project_name: '',
-                overtime_date: today,
-                time_start: '17:20',
-                time_end: '18:20',
-                break_start: '12:00',
-                break_end: '13:00',
-                overtime_title: '',
-                overtime_reason: '',
-                take_break: false
+            const currentEmployee = form.value.employee_name;
+            const currentDate = form.value.overtime_date;
+            form.value = getDefaultForm();
+            form.value.employee_name = currentEmployee;
+            form.value.overtime_date = currentDate;
+
+            // Re-fetch last submitted data
+            const lastData = store.getters['overtime/getLastSubmittedData'](
+                currentEmployee,
+                currentDate
+            );
+            if (lastData) {
+                updateFormWithLastData(lastData);
             }
-            totalHours.value = 0
-            totalBreakHours.value = 0
-        }
+        };
+
+        const updateFormWithLastData = (lastData) => {
+            form.value = {
+                ...getDefaultForm(),
+                ...lastData,
+                employee_name: lastData.employee_name,
+                project_name: lastData.project_name,
+                time_start: lastData.time_start || '17:20',
+                time_end: lastData.time_end || '20:20',
+                break_start: lastData.break_start || '18:30',
+                break_end: lastData.break_end || '19:00',
+                take_break: !!lastData.break_start,
+                overtime_date: lastData.overtime_date || new Date().toISOString().split('T')[0],
+            };
+            calculateTotalHours();
+            calculateTotalBreakTime();
+        };
 
         const handleSubmit = async () => {
-            submitError.value = ''
-            const error = validateForm()
+            submitError.value = '';
+            submitSuccess.value = false;
+            const error = validateForm();
             if (error) {
-                submitError.value = error
-                return
+                submitError.value = error;
+                return;
             }
 
             try {
@@ -270,24 +318,74 @@ export default {
                     break_start: form.value.take_break ? form.value.break_start : null,
                     break_end: form.value.take_break ? form.value.break_end : null,
                     total_hours: totalHours.value
+                };
+
+                await store.dispatch('overtime/submitRequest', requestData);
+                await store.dispatch('overtime/fetchRequests');
+                submitSuccess.value = true;
+
+                // Don't reset form completely, just refresh the data
+                const lastData = store.getters['overtime/getLastSubmittedData'](
+                    form.value.employee_name,
+                    form.value.overtime_date
+                );
+                if (lastData) {
+                    updateFormWithLastData(lastData);
                 }
-
-                await store.dispatch('overtime/submitRequest', requestData)
-                resetForm()
             } catch (error) {
-                submitError.value = error.message || 'Error submitting request'
+                submitError.value = error.message || 'Error submitting request';
             }
-        }
+        };
 
-        onMounted(() => {
-            calculateTotalHours()
-            calculateTotalBreakTime()
-        })
+        // onMounted(async () => {
+        //     await store.dispatch('employees/fetchEmployees');
+        //     await store.dispatch('projects/fetchProjects');
+        //     await store.dispatch('overtime/fetchRequests');
+        //     calculateTotalHours();
+        //     calculateTotalBreakTime();
+        // });
 
-        watch(() => [form.value.break_start, form.value.break_end], () => {
-            calculateTotalBreakTime()
-            calculateTotalHours()
-        })
+        onMounted(async () => {
+            try {
+                await Promise.all([
+                    store.dispatch('employees/fetchEmployees'),
+                    store.dispatch('projects/fetchProjects'),
+                    store.dispatch('overtime/fetchRequests')
+                ]);
+                calculateTotalHours();
+                calculateTotalBreakTime();
+            } catch (error) {
+                console.error('Error loading initial data:', error);
+                submitError.value = 'Failed to load dropdown options';
+            }
+        });
+
+        watch([
+            () => form.value.employee_name,
+            () => form.value.overtime_date
+        ], async ([newEmployee, newDate]) => {
+            if (newEmployee === DEFAULT_SELECT) {
+                resetForm();
+                return;
+            }
+
+            const lastData = store.getters['overtime/getLastSubmittedData'](
+                newEmployee,
+                newDate
+            );
+
+            if (lastData) {
+                updateFormWithLastData(lastData);
+            } else {
+                // Reset to defaults while keeping employee and date
+                const currentEmployee = form.value.employee_name;
+                const currentDate = form.value.overtime_date;
+                form.value = getDefaultForm();
+                form.value.employee_name = currentEmployee;
+                form.value.overtime_date = currentDate;
+                handleEmployeeChange();
+            }
+        });
 
         return {
             form,
@@ -302,7 +400,9 @@ export default {
             projectOptions,
             remainingWeekly,
             remainingMonthly,
+            resetForm,
             submitError,
+            submitSuccess,
             totalHours,
             totalBreakHours,
         }

@@ -25,10 +25,12 @@ export default {
     async fetchProjects({ commit }) {
       try {
         commit('SET_LOADING', true)
-        const data = await api.getProjects()
+        const data = await api.getAllProjects()
+        console.log('Fetched projects:', data)
         commit('SET_PROJECTS', data)
       } catch (error) {
         commit('SET_ERROR', error.message)
+        console.error('Error fetching projects:', error)
       } finally {
         commit('SET_LOADING', false)
       }
@@ -49,10 +51,14 @@ export default {
   },
 
   getters: {
-    projectOptions: (state) =>
-      state.projects.map((proj) => ({
-        value: proj.id,
-        text: proj.name,
-      })),
+    projectOptions: (state) => {
+      return [
+        { value: '--SELECT OPTIONS--', text: '--SELECT OPTIONS--' },
+        ...state.projects.map((proj) => ({
+          value: proj.name || '',
+          text: proj.name || 'Unnamed Project',
+        })),
+      ].filter((option) => option.value && option.text)
+    },
   },
 }

@@ -14,11 +14,6 @@ const routes = [
         name: 'Dashboard',
         component: () => import('@/views/pages/DashboardView.vue'),
       },
-      {
-        path: 'dasbor',
-        name: 'Dasbor',
-        component: () => import('@/views/DashboardView.vue'),
-      },
     ],
   },
   {
@@ -30,7 +25,7 @@ const routes = [
       {
         path: 'form',
         name: 'OvertimeForm',
-        component: () => import('@/components/OvertimeForm.vue'),
+        component: () => import('@/components//OvertimeForm.vue'),
       },
       {
         path: 'history',
@@ -40,22 +35,6 @@ const routes = [
       {
         path: 'analytics',
         name: 'OvertimeAnalytics',
-        component: () => import('@/views/pages/OvertimeAnalyticsView.vue'),
-      },
-      /* das */
-      {
-        path: 'form1',
-        name: 'OvertimeForm1',
-        component: () => import('@/components/test/OvertimeForm.vue'),
-      },
-      {
-        path: 'history1',
-        name: 'OvertimeHistory1',
-        component: () => import('@/components/test/OvertimeHistory.vue'),
-      },
-      {
-        path: 'analytics',
-        name: 'OvertimeAnalytics1',
         component: () => import('@/views/pages/OvertimeAnalyticsView.vue'),
       },
     ],
@@ -68,7 +47,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory("/"),
   routes,
   scrollBehavior() {
     return { top: 0 };

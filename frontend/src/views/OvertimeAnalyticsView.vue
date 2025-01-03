@@ -1,16 +1,15 @@
-<!-- src/views/pages/DashboardView.vue -->
 <template>
     <div>
-        <h1>Dashboard</h1>
+        <h1>Overtime Analytics</h1>
         <div v-if="loading">Loading...</div>
         <div v-else>
-            <h2>Employee Analytics</h2>
+            <h2>Employee Overtime Analytics</h2>
             <pre>{{ employeeAnalytics }}</pre>
 
-            <h2>Project Analytics</h2>
+            <h2>Project Overtime Analytics</h2>
             <pre>{{ projectAnalytics }}</pre>
 
-            <h2>Timeline Data</h2>
+            <h2>Timeline Overtime Data</h2>
             <pre>{{ timelineData }}</pre>
         </div>
     </div>
@@ -18,7 +17,7 @@
 
 <script>
 export default {
-    name: "DashboardView",
+    name: "OvertimeAnalyticsView",
     computed: {
         // Access the analytics data from Vuex store
         employeeAnalytics() {
@@ -35,7 +34,7 @@ export default {
         }
     },
     created() {
-        // Dispatch the action to fetch analytics data when the component is created
+        // Dispatch the action to fetch overtime analytics when the component is created
         const params = { start_date: '2024-01-01', end_date: '2024-12-31' }; // Example params
         this.$store.dispatch('analytics/fetchAnalytics', params);
     }

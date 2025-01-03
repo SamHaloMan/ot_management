@@ -24,13 +24,15 @@ export default {
   actions: {
     async fetchEmployees({ commit }) {
       try {
-        commit('SET_LOADING', true);
-        const employees = await api.getEmployees(); 
-        commit('SET_EMPLOYEES', employees || []);
+        commit('SET_LOADING', true)
+        const employees = await api.getAllEmployees()
+        console.log('Fetched employees:', employees)
+        commit('SET_EMPLOYEES', employees || [])
       } catch (error) {
-        commit('SET_ERROR', error.message || 'Failed to fetch employees');
+        commit('SET_ERROR', error.message || 'Failed to fetch employees')
+        console.error('Error fetching employees:', error)
       } finally {
-        commit('SET_LOADING', false);
+        commit('SET_LOADING', false)
       }
     },
 
@@ -49,11 +51,15 @@ export default {
   },
 
   getters: {
-    employeeOptions: (state) =>
-      state.employees.map((emp) => ({
-        value: emp.id,
-        text: emp.name,
-        workId: emp.work_id,
-      })),
+    employeeOptions: (state) => {
+      return [
+        { value: '--SELECT OPTIONS--', text: '--SELECT OPTIONS--' },
+        ...state.employees.map((emp) => ({
+          value: emp.name || '',
+          text: emp.name || 'Unnamed Employee',
+          workId: emp.work_id,
+        })),
+      ].filter((option) => option.value && option.text)
+    },
   },
 }

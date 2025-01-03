@@ -12,7 +12,7 @@ import { iconsSet as icons } from '@/assets/icons'
 import '@coreui/coreui/dist/css/coreui.min.css'
 
 import axios from 'axios'
-axios.defaults.baseURL = import.meta.env.BASE_URL
+axios.defaults.baseURL = import.meta.env.VITE_APP_API_BASE_URL || 'http://localhost:1234/v1/api/'
 
 const app = createApp(App)
 
