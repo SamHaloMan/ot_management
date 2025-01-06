@@ -25,7 +25,7 @@ const routes = [
       {
         path: 'form',
         name: 'OvertimeForm',
-        component: () => import('@/components//OvertimeForm.vue'),
+        component: () => import('@/views/OvertimeForm.vue'),
       },
       {
         path: 'history',

@@ -2,7 +2,6 @@ import api from '@/api'
 
 export default {
   namespaced: true,
-
   state: {
     employees: [],
     loading: false,
@@ -26,24 +25,10 @@ export default {
       try {
         commit('SET_LOADING', true)
         const employees = await api.getAllEmployees()
-        console.log('Fetched employees:', employees)
         commit('SET_EMPLOYEES', employees || [])
       } catch (error) {
         commit('SET_ERROR', error.message || 'Failed to fetch employees')
         console.error('Error fetching employees:', error)
-      } finally {
-        commit('SET_LOADING', false)
-      }
-    },
-
-    async createEmployee({ commit, dispatch }, employeeData) {
-      try {
-        commit('SET_LOADING', true)
-        await api.createEmployee(employeeData)
-        dispatch('fetchEmployees')
-      } catch (error) {
-        commit('SET_ERROR', error.message)
-        throw error
       } finally {
         commit('SET_LOADING', false)
       }
@@ -53,13 +38,19 @@ export default {
   getters: {
     employeeOptions: (state) => {
       return [
-        { value: '--SELECT OPTIONS--', text: '--SELECT OPTIONS--' },
-        ...state.employees.map((emp) => ({
-          value: emp.name || '',
-          text: emp.name || 'Unnamed Employee',
-          workId: emp.work_id,
-        })),
-      ].filter((option) => option.value && option.text)
+        {
+          label: '--SELECT OPTIONS--',
+          value: '--SELECT OPTIONS--',
+          workId: 'MW-------',
+        },
+        ...state.employees
+          .filter((emp) => emp.is_enabled)
+          .map((emp) => ({
+            label: emp.name,
+            value: emp.name,
+            workId: emp.work_id,
+          })),
+      ]
     },
   },
 }

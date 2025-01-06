@@ -9,6 +9,8 @@ export default {
     weeklyHours: 0,
     monthlyHours: 0,
     lastSubmittedData: {},
+    employeeOvertime: {},
+    historicalData: {},
   },
 
   mutations: {
@@ -27,6 +29,13 @@ export default {
     },
     SET_MONTHLY_HOURS(state, value) {
       state.monthlyHours = value
+    },
+    SET_EMPLOYEE_OVERTIME(state, { employeeId, weekly, monthly }) {
+      state.employeeOvertime[employeeId] = { weekly, monthly }
+    },
+    SET_HISTORICAL_DATA(state, { employeeName, date, data }) {
+      const key = `${employeeName}-${date}`
+      state.historicalData[key] = data
     },
     ADD_REQUEST(state, request) {
       state.requests.unshift(request)
@@ -47,20 +56,32 @@ export default {
         commit('SET_REQUESTS', requests)
 
         // Calculate weekly and monthly hours
+        const employeeOvertime = {}
         const now = new Date()
         const weekStart = new Date(now.setDate(now.getDate() - now.getDay()))
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
-        const weeklyHours = requests
-          .filter((req) => new Date(req.overtime_date) >= weekStart)
-          .reduce((sum, req) => sum + Number(req.total_hours), 0)
+        requests.forEach((request) => {
+          const requestDate = new Date(request.overtime_date)
+          if (!employeeOvertime[request.work_id]) {
+            employeeOvertime[request.work_id] = { weekly: 0, monthly: 0 }
+          }
+          if (requestDate >= weekStart) {
+            employeeOvertime[request.work_id].weekly += Number(request.total_hours)
+          }
+          if (requestDate >= monthStart) {
+            employeeOvertime[request.work_id].monthly += Number(request.total_hours)
+          }
+        })
 
-        const monthlyHours = requests
-          .filter((req) => new Date(req.overtime_date) >= monthStart)
-          .reduce((sum, req) => sum + Number(req.total_hours), 0)
-
-        commit('SET_WEEKLY_HOURS', weeklyHours)
-        commit('SET_MONTHLY_HOURS', monthlyHours)
+        // Update overtime for each employee
+        Object.entries(employeeOvertime).forEach(([employeeId, hours]) => {
+          commit('SET_EMPLOYEE_OVERTIME', {
+            employeeId,
+            weekly: hours.weekly,
+            monthly: hours.monthly,
+          })
+        })
       } catch (error) {
         commit('SET_ERROR', error.message)
         console.error('Error fetching overtime requests:', error)
@@ -92,6 +113,29 @@ export default {
         commit('SET_LOADING', false)
       }
     },
+
+    async fetchEmployeeOvertimeData({ commit }, { employeeName, date }) {
+      try {
+        const response = await api.getOvertimeRequests({
+          employee_name: employeeName,
+          overtime_date: date,
+        })
+
+        if (response && response.length > 0) {
+          const data = response[0]
+          commit('SET_HISTORICAL_DATA', {
+            employeeName,
+            date,
+            data,
+          })
+          return data
+        }
+        return null
+      } catch (error) {
+        console.error('Error fetching overtime data:', error)
+        throw error
+      }
+    },
   },
 
   getters: {
@@ -112,6 +156,27 @@ export default {
       )
 
       return historicalRequest || lastSubmitted || null
+    },
+    getEmployeeOvertimeHours: (state) => (employeeId) => {
+      return state.employeeOvertime[employeeId] || { weekly: 0, monthly: 0 }
+    },
+    getHistoricalRequest: (state) => (employeeName, date) => {
+      const key = `${employeeName}-${date}`
+      return (
+        state.historicalData[key] ||
+        state.requests.find(
+          (req) => req.employee_name === employeeName && req.overtime_date === date,
+        )
+      )
+    },
+    getEmployeeOvertimeStats: (state) => (workId) => {
+      const stats = state.employeeOvertime[workId] || { weekly: 0, monthly: 0 }
+      return {
+        weeklyHours: stats.weekly,
+        monthlyHours: stats.monthly,
+        remainingWeekly: Math.max(0, 18 - stats.weekly),
+        remainingMonthly: Math.max(0, 72 - stats.monthly),
+      }
     },
   },
 }

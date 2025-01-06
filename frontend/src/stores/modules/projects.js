@@ -52,13 +52,16 @@ export default {
 
   getters: {
     projectOptions: (state) => {
+      const DEFAULT_SELECT = '--SELECT OPTIONS--'
       return [
-        { value: '--SELECT OPTIONS--', text: '--SELECT OPTIONS--' },
-        ...state.projects.map((proj) => ({
-          value: proj.name || '',
-          text: proj.name || 'Unnamed Project',
-        })),
-      ].filter((option) => option.value && option.text)
+        { text: DEFAULT_SELECT, value: DEFAULT_SELECT },
+        ...state.projects
+          .filter((project) => project.is_enabled)
+          .map((project) => ({
+            text: project.name,
+            value: project.name,
+          })),
+      ]
     },
   },
 }
