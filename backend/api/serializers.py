@@ -16,7 +16,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 
 class OvertimeRequestSerializer(serializers.ModelSerializer):
-    employee_name = serializers.CharField(write_only=True)
+    employee_name = serializers.CharField()
 
     class Meta:
         model = OvertimeRequest
@@ -56,6 +56,7 @@ class OvertimeRequestSerializer(serializers.ModelSerializer):
             try:
                 employee = Employee.objects.get(name=employee_name)
                 data['work_id'] = employee.work_id
+                data['employee_name'] = employee.name
             except Employee.DoesNotExist:
                 raise serializers.ValidationError({'employee_name': 'Employee name not found'})
 

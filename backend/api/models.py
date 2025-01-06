@@ -1,9 +1,13 @@
 from django.db import models
 from django.forms import ValidationError
 from django.utils.timezone import now
-from datetime import datetime, timedelta
+from datetime import datetime, date
 
 from .managers import json_manager
+
+
+def current_date():
+    return date.today()
 
 
 class TimestampedModel(models.Model):
@@ -59,7 +63,7 @@ class OvertimeRequest(TimestampedModel):
     work_id = models.CharField(max_length=10)
     employee_name = models.CharField(max_length=255)
     project_name = models.CharField(max_length=255)
-    overtime_date = models.DateField(default=now)
+    overtime_date = models.DateField(default=current_date)
     overtime_title = models.CharField(max_length=255)
     overtime_reason = models.TextField()
     time_start = models.TimeField()
@@ -112,12 +116,10 @@ class OvertimeRequest(TimestampedModel):
         super().save(*args, **kwargs)
         
         try:
-            # Update JSON files
             json_manager.update_overtime_json(self)
             from .models import Employee, OvertimeRequest
             json_manager.update_analytics_json(Employee, OvertimeRequest)
         except Exception as e:
-            # Log the error, but don't prevent the save operation
             print(f"Error updating JSON files: {str(e)}")
 
     def delete(self, *args, **kwargs):

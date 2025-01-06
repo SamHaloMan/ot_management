@@ -6,7 +6,7 @@ from django.utils.timezone import now
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.filters import SearchFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
 from datetime import datetime, timedelta, date
 from dateutil.relativedelta import relativedelta
 
@@ -32,8 +32,40 @@ class ProjectViewSet(viewsets.ModelViewSet):
 class OvertimeRequestViewSet(viewsets.ModelViewSet):
     queryset = OvertimeRequest.objects.all()
     serializer_class = OvertimeRequestSerializer
-    filter_backends = [SearchFilter]
-    filterset_fields = ["work_id", "employee__name", "project__name", "overtime_date"]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = [
+        'work_id',
+        'employee_name',
+        'project_name',
+        'overtime_title',
+        'overtime_reason',
+        'overtime_date',
+    ]
+    ordering_fields = [
+        'overtime_date',
+        'created_at',
+        'total_hours'
+    ]
+
+    def get_queryset(self):
+        queryset = OvertimeRequest.objects.all()
+        
+        # Filter by specific fields if provided in query params
+        work_id = self.request.query_params.get('work_id', None)
+        project_name = self.request.query_params.get('project_name', None)
+        employee_name = self.request.query_params.get('employee_name', None)
+        overtime_date = self.request.query_params.get('overtime_date', None)
+        
+        if work_id:
+            queryset = queryset.filter(work_id__icontains=work_id)
+        if project_name:
+            queryset = queryset.filter(project_name__icontains=project_name)
+        if employee_name:
+            queryset = queryset.filter(employee_name__icontains=employee_name)
+        if overtime_date:
+            queryset = queryset.filter(overtime_date=overtime_date)
+            
+        return queryset
 
 
 class OvertimeReportAnalyticsViewSet(viewsets.ViewSet):
@@ -292,3 +324,21 @@ class OvertimeReportAnalyticsViewSet(viewsets.ViewSet):
                 {"error": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def list(self, request):
+        return Response({"message": "List method not implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def retrieve(self, request, pk=None):
+        return Response({"message": "Retrieve method not implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def create(self, request):
+        return Response({"message": "Create method not implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def update(self, request, pk=None):
+        return Response({"message": "Update method not implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def partial_update(self, request, pk=None):
+        return Response({"message": "Partial update method not implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
+    def destroy(self, request, pk=None):
+        return Response({"message": "Destroy method not implemented"}, status=status.HTTP_501_NOT_IMPLEMENTED)
