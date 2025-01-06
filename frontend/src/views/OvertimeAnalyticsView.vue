@@ -19,7 +19,6 @@
 export default {
     name: "OvertimeAnalyticsView",
     computed: {
-        // Access the analytics data from Vuex store
         employeeAnalytics() {
             return this.$store.getters['analytics/employeeAnalytics'];
         },
@@ -34,8 +33,7 @@ export default {
         }
     },
     created() {
-        // Dispatch the action to fetch overtime analytics when the component is created
-        const params = { start_date: '2024-01-01', end_date: '2024-12-31' }; // Example params
+        const params = { start_date: '2025-01-01', end_date: '2025-12-31' };
         this.$store.dispatch('analytics/fetchAnalytics', params);
     }
 };
