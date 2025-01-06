@@ -1,70 +1,41 @@
 <template>
-  <div class="row mb-4">
-    <div class="col-md-4" v-for="card in summaryCards" :key="card.title">
-      <CCard>
-        <CCardBody>
-          <h6>{{ card.title }}</h6>
-          <div class="text-muted">{{ card.subtitle }}</div>
-          <div class="h4" :class="card.valueClass">{{ card.value }}</div>
-        </CCardBody>
-      </CCard>
+    <div class="row mb-4">
+        <div class="col-md-4" v-for="(card, index) in summaryCards" :key="index">
+            <CCard>
+                <CCardBody>
+                    <h6>{{ card.title }}</h6>
+                    <div>{{ card.subtitle }}</div>
+                    <div class="h4">{{ card.value }}</div>
+                </CCardBody>
+            </CCard>
+        </div>
     </div>
-  </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { CCard, CCardBody } from '@coreui/vue';
-import { TIME_LIMITS } from '@/constants/overtime';
+import { computed } from 'vue'
 
 const props = defineProps({
-  appliedMonthly: {
-    type: Number,
-    required: true,
-    default: 0,
-    validator: value => !isNaN(value) && value >= 0
-  },
-  appliedWeekly: {
-    type: Number,
-    required: true,
-    default: 0,
-    validator: value => !isNaN(value) && value >= 0
-  }
-});
+    appliedMonthly: Number,
+    appliedWeekly: Number,
+    employeeName: String
+})
 
-const formatHours = (hours) => Number(hours).toFixed(2);
-
-const getRemainingHours = (applied, limit) => {
-  const remaining = limit - applied;
-  return {
-    value: formatHours(Math.max(0, remaining)),
-    class: remaining < 0 ? 'text-danger' : 'text-success'
-  };
-};
-
-const summaryCards = computed(() => {
-  const weeklyRemaining = getRemainingHours(props.appliedWeekly, TIME_LIMITS.WEEKLY);
-  const monthlyRemaining = getRemainingHours(props.appliedMonthly, TIME_LIMITS.MONTHLY);
-
-  return [
+const summaryCards = computed(() => [
     {
-      title: 'Overtime Limit (Monthly)',
-      subtitle: 'Applied / Limit',
-      value: `${formatHours(props.appliedMonthly)} / ${formatHours(TIME_LIMITS.MONTHLY)} Hours`,
-      valueClass: props.appliedMonthly > TIME_LIMITS.MONTHLY ? 'text-danger' : ''
+        title: 'Overtime Weekly',
+        subtitle: `Applied / Limit`,
+        value: `${props.appliedWeekly.toFixed(2)} / 18.00 Hours`
     },
     {
-      title: 'Applied Overtime (Weekly)',
-      subtitle: 'Current / Limit',
-      value: `${formatHours(props.appliedWeekly)} / ${formatHours(TIME_LIMITS.WEEKLY)} Hours`,
-      valueClass: props.appliedWeekly > TIME_LIMITS.WEEKLY ? 'text-danger' : ''
+        title: `Overtime Monthly`,
+        subtitle: `Applied / Limit`,
+        value: `${props.appliedMonthly.toFixed(2)} / 72.00 Hours`
     },
     {
-      title: 'Remaining Applicable Overtime',
-      subtitle: 'Weekly / Monthly',
-      value: `${weeklyRemaining.value} / ${monthlyRemaining.value} Hours`,
-      valueClass: weeklyRemaining.class
+        title: 'Remaining Applicable Overtime',
+        subtitle: 'Weekly / Monthly',
+        value: `${(18 - props.appliedWeekly).toFixed(2)} / ${(72 - props.appliedMonthly).toFixed(2)} Hours`
     }
-  ];
-});
+])
 </script>

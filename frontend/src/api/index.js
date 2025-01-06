@@ -46,11 +46,20 @@ const validateOvertimeRequest = (data) => {
     'time_start',
     'time_end',
   ]
+
   for (const field of required) {
     if (!data[field]) {
       throw new Error(`Missing required field: ${field}`)
     }
   }
+
+  // Validate break times if take_break is true
+  if (data.take_break === true) {
+    if (!data.break_start || !data.break_end) {
+      throw new Error('Break start and end times are required when take_break is true')
+    }
+  }
+
   if (data.work_id.length > 10) {
     throw new Error('work_id must be less than 10 characters')
   }
@@ -112,8 +121,19 @@ const api = {
   },
 
   // Overtime methods
-  async getOvertimeRequests(search) {
-    return handleApiResponse(() => axios.get('/overtime-requests/', { params: { search } }))
+  async getOvertimeRequests(params) {
+    return handleApiResponse(() => axios.get('/overtime-requests/', { params }))
+  },
+
+  async getEmployeeOvertimeByDate(employeeName, date) {
+    return handleApiResponse(() =>
+      axios.get('/overtime-requests/', {
+        params: {
+          employee_name: employeeName,
+          overtime_date: date,
+        },
+      }),
+    )
   },
 
   async getSpecificOvertimeRequest(id) {

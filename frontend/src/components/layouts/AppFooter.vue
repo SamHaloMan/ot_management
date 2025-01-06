@@ -7,7 +7,7 @@
       >
     </div>
     <div class="ms-auto">
-      <span class="me-1" target="_blank">Made with ❤️</span>
+      <span class="me-1" target="_blank">Made with CoreUI by</span>
       <a href="#">PTB AST1</a>
     </div>
   </CFooter>
